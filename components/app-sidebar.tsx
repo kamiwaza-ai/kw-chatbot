@@ -1,3 +1,5 @@
+// components/app-sidebar.tsx
+
 'use client';
 
 import type { User } from 'next-auth';
