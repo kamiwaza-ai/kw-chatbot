@@ -4,6 +4,10 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { getAuthCookie } from '@/lib/auth/cookies';
 import { getCurrentUser } from '@/lib/auth/kamiwaza';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { SidebarInset } from '@/components/ui/sidebar';
+import Script from 'next/script';
+
+
 
 export default async function Layout({
   children,
@@ -19,13 +23,15 @@ export default async function Layout({
   const isCollapsed = cookieStore.get('sidebar:state')?.value !== 'true';
 
   return (
-    <SidebarProvider defaultOpen={!isCollapsed}>
-      <div className="flex min-h-screen h-screen">
-        <AppSidebar user={user} className={isCollapsed ? 'hidden' : ''} />
-        <main className={`flex-1 flex flex-col overflow-hidden ${isCollapsed ? '' : 'has-sidebar'}`}>
-          {children}
-        </main>
-      </div>
-    </SidebarProvider>
+    <>
+      <Script
+        src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"
+        strategy="beforeInteractive"
+      />
+      <SidebarProvider defaultOpen={!isCollapsed}>
+        <AppSidebar user={user} />
+        <SidebarInset>{children}</SidebarInset>
+      </SidebarProvider>
+    </>
   );
 }

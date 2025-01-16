@@ -1,5 +1,3 @@
-// app/layout.tsx
-
 import type { Metadata } from 'next';
 import { Toaster } from 'sonner';
 
@@ -8,8 +6,9 @@ import { ThemeProvider } from '@/components/theme-provider';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'AI Chatbot',
-  description: 'An open source AI chatbot built with Next.js.',
+  metadataBase: new URL('https://chat.vercel.ai'),
+  title: 'Kamiwaza AI Chatbot',
+  description: 'Kamiwaza AI Chatbot',
 };
 
 export const viewport = {
@@ -44,7 +43,6 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className="h-full"
       // `next-themes` injects an extra classname to the body element to avoid
       // visual flicker before hydration. Hence the `suppressHydrationWarning`
       // prop is necessary to avoid the React hydration mismatch warning.
@@ -52,27 +50,13 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <link
-          rel="preload"
-          href="/fonts/geist.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="preload"
-          href="/fonts/geist-mono.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
         <script
           dangerouslySetInnerHTML={{
             __html: THEME_COLOR_SCRIPT,
           }}
         />
       </head>
-      <body className="min-h-full bg-background font-sans antialiased">
+      <body className="antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

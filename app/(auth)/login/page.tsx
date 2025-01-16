@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 
 import { AuthForm } from '@/components/auth-form';
 import { SubmitButton } from '@/components/submit-button';
+import Link from 'next/link';
 
 interface LoginState {
   status: 'idle' | 'loading' | 'success' | 'error';
@@ -78,16 +79,12 @@ export default function LoginPage() {
         <div className="flex flex-col items-center justify-center gap-2 px-4 text-center sm:px-16">
           <h3 className="text-xl font-semibold dark:text-zinc-50">Sign In</h3>
           <p className="text-sm text-gray-500 dark:text-zinc-400">
-            Enter your Kamiwaza credentials to continue
+            Use your email and password to sign in
           </p>
         </div>
-        <AuthForm 
-          action={handleSubmit} 
-          defaultUsername={username}
-        >
-          <SubmitButton isSuccessful={state.status === 'success'}>
-            {state.status === 'loading' ? 'Signing in...' : 'Sign in'}
-          </SubmitButton>
+        <AuthForm action={handleSubmit} defaultUsername={username}>
+          <SubmitButton isSuccessful={state.status === 'success'}>Sign in</SubmitButton>
+         
         </AuthForm>
       </div>
     </div>

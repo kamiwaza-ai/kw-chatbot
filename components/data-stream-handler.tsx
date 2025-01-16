@@ -10,6 +10,7 @@ import { useSWRConfig } from 'swr';
 
 type DataStreamDelta = {
   type:
+    | 'text'
     | 'text-delta'
     | 'code-delta'
     | 'image-delta'
@@ -24,10 +25,10 @@ type DataStreamDelta = {
 };
 
 export function DataStreamHandler({ id }: { id: string }) {
-  const { data: dataStream } = useChat({ id });
+  const { messages, setMessages } = useChat({ id });
   const { setUserMessageIdFromServer } = useUserMessageId();
   const { setBlock } = useBlock();
-  const lastProcessedIndex = useRef(-1);
+  const streamingContent = useRef('');
 
   const { mutate } = useSWRConfig();
   const [optimisticSuggestions, setOptimisticSuggestions] = useState<
@@ -43,107 +44,58 @@ export function DataStreamHandler({ id }: { id: string }) {
   }, [optimisticSuggestions, mutate]);
 
   useEffect(() => {
-    if (!dataStream?.length) return;
-
-    const newDeltas = dataStream.slice(lastProcessedIndex.current + 1);
-    lastProcessedIndex.current = dataStream.length - 1;
-
-    (newDeltas as DataStreamDelta[]).forEach((delta: DataStreamDelta) => {
-      if (delta.type === 'user-message-id') {
-        setUserMessageIdFromServer(delta.content as string);
+    const eventSource = new EventSource(`/api/chat?id=${id}`);
+    
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      if (data.type === 'user-message-id') {
+        setUserMessageIdFromServer(data.content);
         return;
       }
 
-      setBlock((draftBlock) => {
-        if (!draftBlock) {
-          return { ...initialBlockData, status: 'streaming' };
-        }
+      if (data.type === 'text') {
+        streamingContent.current += data.content;
+        
+        setMessages(messages => {
+          const lastMessage = messages[messages.length - 1];
+          if (lastMessage?.role === 'assistant') {
+            return messages.map((msg, i) => 
+              i === messages.length - 1 
+                ? { ...msg, content: streamingContent.current }
+                : msg
+            );
+          } else {
+            return [...messages, {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content: streamingContent.current,
+              createdAt: new Date()
+            }];
+          }
+        });
 
-        switch (delta.type) {
-          case 'id':
-            return {
-              ...draftBlock,
-              documentId: delta.content as string,
-              status: 'streaming',
-            };
+        setBlock(draftBlock => ({
+          ...draftBlock || initialBlockData,
+          content: streamingContent.current,
+          status: 'streaming'
+        }));
+      }
 
-          case 'title':
-            return {
-              ...draftBlock,
-              title: delta.content as string,
-              status: 'streaming',
-            };
+      if (data.type === 'finish') {
+        streamingContent.current = '';
+        setBlock(draftBlock => ({
+          ...draftBlock || initialBlockData,
+          status: 'idle'
+        }));
+        eventSource.close();
+      }
+    };
 
-          case 'kind':
-            return {
-              ...draftBlock,
-              kind: delta.content as BlockKind,
-              status: 'streaming',
-            };
-
-          case 'text-delta':
-            return {
-              ...draftBlock,
-              content: draftBlock.content + (delta.content as string),
-              isVisible:
-                draftBlock.status === 'streaming' &&
-                draftBlock.content.length > 400 &&
-                draftBlock.content.length < 450
-                  ? true
-                  : draftBlock.isVisible,
-              status: 'streaming',
-            };
-
-          case 'code-delta':
-            return {
-              ...draftBlock,
-              content: delta.content as string,
-              isVisible:
-                draftBlock.status === 'streaming' &&
-                draftBlock.content.length > 300 &&
-                draftBlock.content.length < 310
-                  ? true
-                  : draftBlock.isVisible,
-              status: 'streaming',
-            };
-
-          case 'image-delta':
-            return {
-              ...draftBlock,
-              content: delta.content as string,
-              isVisible: true,
-              status: 'streaming',
-            };
-
-          case 'suggestion':
-            setTimeout(() => {
-              setOptimisticSuggestions((currentSuggestions) => [
-                ...currentSuggestions,
-                delta.content as Suggestion,
-              ]);
-            }, 0);
-
-            return draftBlock;
-
-          case 'clear':
-            return {
-              ...draftBlock,
-              content: '',
-              status: 'streaming',
-            };
-
-          case 'finish':
-            return {
-              ...draftBlock,
-              status: 'idle',
-            };
-
-          default:
-            return draftBlock;
-        }
-      });
-    });
-  }, [dataStream, setBlock, setUserMessageIdFromServer]);
+    return () => {
+      eventSource.close();
+    };
+  }, [id, setMessages, setUserMessageIdFromServer, setBlock]);
 
   return null;
 }
