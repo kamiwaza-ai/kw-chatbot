@@ -10,6 +10,6 @@ export async function GET() {
     return Response.json('Unauthorized!', { status: 401 });
   }
 
-  const chats = await getChatsByUserId({ id: session.user.id });
+  const chats = await getChatsByUserId({ id: session.user.dbId });
   return Response.json(chats);
 }

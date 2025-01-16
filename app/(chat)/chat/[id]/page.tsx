@@ -24,7 +24,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
       return notFound();
     }
 
-    if (session.user.id !== chat.userId) {
+    if (session.user.dbId !== chat.userId) {
       return notFound();
     }
   }
@@ -46,7 +46,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         initialMessages={convertToUIMessages(messagesFromDb)}
         selectedModelId={selectedModelId}
         selectedVisibilityType={chat.visibility}
-        isReadonly={session?.user?.id !== chat.userId}
+        isReadonly={session?.user?.dbId !== chat.userId}
       />
       <DataStreamHandler id={id} />
     </>

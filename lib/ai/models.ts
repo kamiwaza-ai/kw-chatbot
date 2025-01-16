@@ -1,4 +1,4 @@
-// Define your models here.
+// lib/ai/models.ts
 
 export interface Model {
   id: string;

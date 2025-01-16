@@ -1,3 +1,5 @@
+// components/model-selector.tsx
+
 'use client';
 
 import { startTransition, useMemo, useOptimistic, useState } from 'react';

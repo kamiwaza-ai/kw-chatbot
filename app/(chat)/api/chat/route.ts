@@ -85,7 +85,7 @@ export async function POST(request: Request) {
 
   if (!chat) {
     const title = await generateTitleFromUserMessage({ message: userMessage });
-    await saveChat({ id, userId: session.user.id, title });
+    await saveChat({ id, userId: session.user.dbId, title });
   }
 
   const userMessageId = generateUUID();
@@ -225,13 +225,13 @@ export async function POST(request: Request) {
                 dataStream.writeData({ type: 'finish', content: '' });
               }
 
-              if (session.user?.id) {
+              if (session.user?.dbId) {
                 await saveDocument({
                   id,
                   title,
                   kind,
                   content: draftText,
-                  userId: session.user.id,
+                  userId: session.user.dbId,
                 });
               }
 
@@ -345,13 +345,13 @@ export async function POST(request: Request) {
                 dataStream.writeData({ type: 'finish', content: '' });
               }
 
-              if (session.user?.id) {
+              if (session.user?.dbId) {
                 await saveDocument({
                   id,
                   title: document.title,
                   content: draftText,
                   kind: document.kind,
-                  userId: session.user.id,
+                  userId: session.user.dbId,
                 });
               }
 
@@ -420,8 +420,8 @@ export async function POST(request: Request) {
                 suggestions.push(suggestion);
               }
 
-              if (session.user?.id) {
-                const userId = session.user.id;
+              if (session.user?.dbId) {
+                const userId = session.user.dbId;
 
                 await saveSuggestions({
                   suggestions: suggestions.map((suggestion) => ({
@@ -443,7 +443,7 @@ export async function POST(request: Request) {
           },
         },
         onFinish: async ({ response }) => {
-          if (session.user?.id) {
+          if (session.user?.dbId) {
             try {
               const responseMessagesWithoutIncompleteToolCalls =
                 sanitizeResponseMessages(response.messages);
@@ -502,7 +502,7 @@ export async function DELETE(request: Request) {
   try {
     const chat = await getChatById({ id });
 
-    if (chat.userId !== session.user.id) {
+    if (chat.userId !== session.user.dbId) {
       return new Response('Unauthorized', { status: 401 });
     }
 
