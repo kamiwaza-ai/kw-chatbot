@@ -89,6 +89,8 @@
         @apply bg-background text-foreground;
     }
 
+    
+
     @font-face {
         font-family: "geist";
         font-style: normal;
