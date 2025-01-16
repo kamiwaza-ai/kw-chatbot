@@ -43,6 +43,7 @@
         --sidebar-accent-foreground: 240 5.9% 10%;
         --sidebar-border: 220 13% 91%;
         --sidebar-ring: 217.2 91.2% 59.8%;
+        --sidebar-width: 16rem;
     }
     .dark {
         --background: 240 10% 3.9%;
@@ -89,7 +90,10 @@
         @apply bg-background text-foreground;
     }
 
-    
+    .has-sidebar {
+        margin-left: var(--sidebar-width);
+        transition: margin-left 0.3s ease;
+    }
 
     @font-face {
         font-family: "geist";

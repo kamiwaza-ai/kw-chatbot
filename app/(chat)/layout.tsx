@@ -21,8 +21,10 @@ export default async function Layout({
   return (
     <SidebarProvider defaultOpen={!isCollapsed}>
       <div className="flex min-h-screen h-screen">
-        <AppSidebar user={user} />
-        <main className="flex-1 flex flex-col overflow-hidden">{children}</main>
+        <AppSidebar user={user} className={isCollapsed ? 'hidden' : ''} />
+        <main className={`flex-1 flex flex-col overflow-hidden ${isCollapsed ? '' : 'has-sidebar'}`}>
+          {children}
+        </main>
       </div>
     </SidebarProvider>
   );

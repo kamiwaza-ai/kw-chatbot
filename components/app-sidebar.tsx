@@ -4,6 +4,7 @@
 
 import type { KamiwazaUser } from '@/lib/auth/types';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 import { PlusIcon } from '@/components/icons';
 import { SidebarHistory } from '@/components/sidebar-history';
@@ -20,12 +21,17 @@ import {
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
-export function AppSidebar({ user }: { user: KamiwazaUser | null }) {
+interface AppSidebarProps {
+  user: KamiwazaUser | null;
+  className?: string;
+}
+
+export function AppSidebar({ user, className }: AppSidebarProps) {
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
 
   return (
-    <Sidebar className="group-data-[side=left]:border-r-0 shrink-0">
+    <Sidebar className={cn("group-data-[side=left]:border-r-0 shrink-0", className)}>
       <SidebarHeader>
         <SidebarMenu>
           <div className="flex flex-row justify-between items-center">
