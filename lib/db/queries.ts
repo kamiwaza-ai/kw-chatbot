@@ -22,23 +22,52 @@ import { BlockKind } from '@/components/block';
 // use the Drizzle adapter for Auth.js / NextAuth
 // https://authjs.dev/reference/adapter/drizzle
 
-export async function getUser(email: string): Promise<Array<User>> {
+export async function getUserByKamiwazaId(kamiwazaId: string): Promise<User | undefined> {
   try {
-    return await db.select().from(user).where(eq(user.email, email));
+    const [existingUser] = await db
+      .select()
+      .from(user)
+      .where(eq(user.kamiwaza_id, kamiwazaId));
+    return existingUser;
   } catch (error) {
-    console.error('Failed to get user from database');
+    console.error('Failed to get user by Kamiwaza ID from database');
     throw error;
   }
 }
 
-export async function createUser(email: string, password: string) {
-  const salt = genSaltSync(10);
-  const hash = hashSync(password, salt);
-
+export async function createOrUpdateUser({
+  email,
+  kamiwazaId,
+}: {
+  email: string;
+  kamiwazaId: string;
+}): Promise<User> {
   try {
-    return await db.insert(user).values({ email, password: hash });
+    const existingUser = await getUserByKamiwazaId(kamiwazaId);
+    
+    if (existingUser) {
+      // Update last login time
+      const [updatedUser] = await db
+        .update(user)
+        .set({ last_login: new Date() })
+        .where(eq(user.kamiwaza_id, kamiwazaId))
+        .returning();
+      return updatedUser;
+    }
+
+    // Create new user
+    const [newUser] = await db
+      .insert(user)
+      .values({
+        email,
+        kamiwaza_id: kamiwazaId,
+        last_login: new Date(),
+      })
+      .returning();
+
+    return newUser;
   } catch (error) {
-    console.error('Failed to create user in database');
+    console.error('Failed to create/update user in database');
     throw error;
   }
 }

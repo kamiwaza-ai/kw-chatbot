@@ -1,3 +1,5 @@
+// app/(chat)/api/chat/route.ts
+
 import {
   type Message,
   convertToCoreMessages,
@@ -8,7 +10,7 @@ import {
 } from 'ai';
 import { z } from 'zod';
 
-import { auth } from '@/app/(auth)/auth';
+import { getSession } from '@/lib/auth/session';
 import { customModel, imageGenerationModel } from '@/lib/ai';
 import { models } from '@/lib/ai/models';
 import {
@@ -60,9 +62,9 @@ export async function POST(request: Request) {
   }: { id: string; messages: Array<Message>; modelId: string } =
     await request.json();
 
-  const session = await auth();
+  const session = await getSession();
 
-  if (!session || !session.user || !session.user.id) {
+  if (!session || !session.user) {
     return new Response('Unauthorized', { status: 401 });
   }
 
@@ -491,7 +493,7 @@ export async function DELETE(request: Request) {
     return new Response('Not Found', { status: 404 });
   }
 
-  const session = await auth();
+  const session = await getSession();
 
   if (!session || !session.user) {
     return new Response('Unauthorized', { status: 401 });

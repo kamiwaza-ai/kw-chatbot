@@ -1,4 +1,6 @@
-import { auth } from '@/app/(auth)/auth';
+// app/(chat)/api/document/route.ts
+
+import { getSession } from '@/lib/auth/session';
 import { BlockKind } from '@/components/block';
 import {
   deleteDocumentsByIdAfterTimestamp,
@@ -14,7 +16,7 @@ export async function GET(request: Request) {
     return new Response('Missing id', { status: 400 });
   }
 
-  const session = await auth();
+  const session = await getSession();
 
   if (!session || !session.user) {
     return new Response('Unauthorized', { status: 401 });
@@ -43,9 +45,9 @@ export async function POST(request: Request) {
     return new Response('Missing id', { status: 400 });
   }
 
-  const session = await auth();
+  const session = await getSession();
 
-  if (!session) {
+  if (!session || !session.user) {
     return new Response('Unauthorized', { status: 401 });
   }
 
@@ -55,18 +57,15 @@ export async function POST(request: Request) {
     kind,
   }: { content: string; title: string; kind: BlockKind } = await request.json();
 
-  if (session.user?.id) {
-    const document = await saveDocument({
-      id,
-      content,
-      title,
-      kind,
-      userId: session.user.id,
-    });
+  const document = await saveDocument({
+    id,
+    content,
+    title,
+    kind,
+    userId: session.user.id,
+  });
 
-    return Response.json(document, { status: 200 });
-  }
-  return new Response('Unauthorized', { status: 401 });
+  return Response.json(document, { status: 200 });
 }
 
 export async function PATCH(request: Request) {
@@ -79,7 +78,7 @@ export async function PATCH(request: Request) {
     return new Response('Missing id', { status: 400 });
   }
 
-  const session = await auth();
+  const session = await getSession();
 
   if (!session || !session.user) {
     return new Response('Unauthorized', { status: 401 });

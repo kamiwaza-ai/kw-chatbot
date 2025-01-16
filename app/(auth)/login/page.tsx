@@ -1,43 +1,76 @@
+// app/(auth)/login/page.tsx
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useActionState, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 import { AuthForm } from '@/components/auth-form';
 import { SubmitButton } from '@/components/submit-button';
 
-import { login, type LoginActionState } from '../actions';
+interface LoginState {
+  status: 'idle' | 'loading' | 'success' | 'error';
+  message?: string;
+}
 
-export default function Page() {
+export default function LoginPage() {
   const router = useRouter();
+  const [state, setState] = useState<LoginState>({ status: 'idle' });
+  const [username, setUsername] = useState('');
 
-  const [email, setEmail] = useState('');
-  const [isSuccessful, setIsSuccessful] = useState(false);
+  async function handleSubmit(formData: FormData) {
+    console.log('🔵 Login: Starting login attempt...', {
+      formData: Object.fromEntries(formData.entries())
+    });
+    setState({ status: 'loading' });
+    setUsername(formData.get('username') as string);
 
-  const [state, formAction] = useActionState<LoginActionState, FormData>(
-    login,
-    {
-      status: 'idle',
-    },
-  );
+    try {
+      const url = '/api/auth/login';
+      console.log('🔵 Login: Sending request to', url);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: formData.get('username'),
+          password: formData.get('password'),
+        }),
+      });
 
-  useEffect(() => {
-    if (state.status === 'failed') {
-      toast.error('Invalid credentials!');
-    } else if (state.status === 'invalid_data') {
-      toast.error('Failed validating your submission!');
-    } else if (state.status === 'success') {
-      setIsSuccessful(true);
-      router.refresh();
+      console.log('🔵 Login: Response received', { 
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        console.error('🔴 Login: Request failed', { 
+          status: response.status,
+          statusText: response.statusText,
+          errorData 
+        });
+        throw new Error('Login failed');
+      }
+
+      const data = await response.json();
+      console.log('🔵 Login: Success', { data });
+
+      setState({ status: 'success' });
+      console.log('🔵 Login: Redirecting to home page...');
+      router.push('/'); // Redirect to home page
+      router.refresh(); // Refresh the page to update the auth state
+    } catch (error) {
+      console.error('🔴 Login: Error during login:', error);
+      setState({ 
+        status: 'error', 
+        message: 'Invalid credentials'
+      });
+      toast.error('Login failed. Please check your credentials.');
     }
-  }, [state.status, router]);
-
-  const handleSubmit = (formData: FormData) => {
-    setEmail(formData.get('email') as string);
-    formAction(formData);
-  };
+  }
 
   return (
     <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-background">
@@ -45,21 +78,16 @@ export default function Page() {
         <div className="flex flex-col items-center justify-center gap-2 px-4 text-center sm:px-16">
           <h3 className="text-xl font-semibold dark:text-zinc-50">Sign In</h3>
           <p className="text-sm text-gray-500 dark:text-zinc-400">
-            Use your email and password to sign in
+            Enter your Kamiwaza credentials to continue
           </p>
         </div>
-        <AuthForm action={handleSubmit} defaultEmail={email}>
-          <SubmitButton isSuccessful={isSuccessful}>Sign in</SubmitButton>
-          <p className="text-center text-sm text-gray-600 mt-4 dark:text-zinc-400">
-            {"Don't have an account? "}
-            <Link
-              href="/register"
-              className="font-semibold text-gray-800 hover:underline dark:text-zinc-200"
-            >
-              Sign up
-            </Link>
-            {' for free.'}
-          </p>
+        <AuthForm 
+          action={handleSubmit} 
+          defaultUsername={username}
+        >
+          <SubmitButton isSuccessful={state.status === 'success'}>
+            {state.status === 'loading' ? 'Signing in...' : 'Sign in'}
+          </SubmitButton>
         </AuthForm>
       </div>
     </div>

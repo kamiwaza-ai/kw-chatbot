@@ -14,10 +14,18 @@ RUN npm install -g pnpm
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+# First copy only package file
+COPY package.json ./
 
+# Install dependencies
+RUN pnpm install
+
+# Then copy the rest
 COPY . .
+
+# Set build-time environment variable
+ENV KAMIWAZA_URI=https://prod.kamiwaza.ai/api
+
 RUN pnpm next build
 
 EXPOSE 3000

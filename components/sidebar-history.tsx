@@ -3,19 +3,12 @@
 import { isToday, isYesterday, subMonths, subWeeks } from 'date-fns';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
-import type { User } from 'next-auth';
+import type { KamiwazaUser } from '@/lib/auth/types';
 import { memo, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
+import { CheckCircle, Globe, Lock, MoreHorizontal, Share, Trash } from 'lucide-react';
 
-import {
-  CheckCircleFillIcon,
-  GlobeIcon,
-  LockIcon,
-  MoreHorizontalIcon,
-  ShareIcon,
-  TrashIcon,
-} from '@/components/icons';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -88,7 +81,7 @@ const PureChatItem = ({
             className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground mr-0.5"
             showOnHover={!isActive}
           >
-            <MoreHorizontalIcon />
+            <MoreHorizontal className="h-4 w-4" />
             <span className="sr-only">More</span>
           </SidebarMenuAction>
         </DropdownMenuTrigger>
@@ -96,7 +89,7 @@ const PureChatItem = ({
         <DropdownMenuContent side="bottom" align="end">
           <DropdownMenuSub>
             <DropdownMenuSubTrigger className="cursor-pointer">
-              <ShareIcon />
+              <Share className="h-4 w-4" />
               <span>Share</span>
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
@@ -108,11 +101,11 @@ const PureChatItem = ({
                   }}
                 >
                   <div className="flex flex-row gap-2 items-center">
-                    <LockIcon size={12} />
+                    <Lock className="h-4 w-4" />
                     <span>Private</span>
                   </div>
                   {visibilityType === 'private' ? (
-                    <CheckCircleFillIcon />
+                    <CheckCircle className="h-4 w-4" />
                   ) : null}
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -122,10 +115,10 @@ const PureChatItem = ({
                   }}
                 >
                   <div className="flex flex-row gap-2 items-center">
-                    <GlobeIcon />
+                    <Globe className="h-4 w-4" />
                     <span>Public</span>
                   </div>
-                  {visibilityType === 'public' ? <CheckCircleFillIcon /> : null}
+                  {visibilityType === 'public' ? <CheckCircle className="h-4 w-4" /> : null}
                 </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuPortal>
@@ -135,7 +128,7 @@ const PureChatItem = ({
             className="cursor-pointer text-destructive focus:bg-destructive/15 focus:text-destructive dark:text-red-500"
             onSelect={() => onDelete(chat.id)}
           >
-            <TrashIcon />
+            <Trash className="h-4 w-4" />
             <span>Delete</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -149,7 +142,7 @@ export const ChatItem = memo(PureChatItem, (prevProps, nextProps) => {
   return true;
 });
 
-export function SidebarHistory({ user }: { user: User | undefined }) {
+export function SidebarHistory({ user }: { user: KamiwazaUser | null }) {
   const { setOpenMobile } = useSidebar();
   const { id } = useParams();
   const pathname = usePathname();

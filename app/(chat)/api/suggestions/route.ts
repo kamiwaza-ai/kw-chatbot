@@ -1,4 +1,6 @@
-import { auth } from '@/app/(auth)/auth';
+// app/(chat)/api/suggestions/route.ts
+
+import { getSession } from '@/lib/auth/session';
 import { getSuggestionsByDocumentId } from '@/lib/db/queries';
 
 export async function GET(request: Request) {
@@ -9,7 +11,7 @@ export async function GET(request: Request) {
     return new Response('Not Found', { status: 404 });
   }
 
-  const session = await auth();
+  const session = await getSession();
 
   if (!session || !session.user) {
     return new Response('Unauthorized', { status: 401 });

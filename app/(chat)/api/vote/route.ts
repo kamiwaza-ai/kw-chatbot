@@ -1,4 +1,6 @@
-import { auth } from '@/app/(auth)/auth';
+// app/(chat)/api/vote/route.ts
+
+import { getSession } from '@/lib/auth/session';
 import { getVotesByChatId, voteMessage } from '@/lib/db/queries';
 
 export async function GET(request: Request) {
@@ -9,9 +11,9 @@ export async function GET(request: Request) {
     return new Response('chatId is required', { status: 400 });
   }
 
-  const session = await auth();
+  const session = await getSession();
 
-  if (!session || !session.user || !session.user.email) {
+  if (!session || !session.user) {
     return new Response('Unauthorized', { status: 401 });
   }
 
@@ -32,9 +34,9 @@ export async function PATCH(request: Request) {
     return new Response('messageId and type are required', { status: 400 });
   }
 
-  const session = await auth();
+  const session = await getSession();
 
-  if (!session || !session.user || !session.user.email) {
+  if (!session || !session.user) {
     return new Response('Unauthorized', { status: 401 });
   }
 

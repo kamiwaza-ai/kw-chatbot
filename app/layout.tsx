@@ -43,6 +43,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
+      className="h-full"
       // `next-themes` injects an extra classname to the body element to avoid
       // visual flicker before hydration. Hence the `suppressHydrationWarning`
       // prop is necessary to avoid the React hydration mismatch warning.
@@ -56,7 +57,7 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className="antialiased">
+      <body className="min-h-full bg-background font-sans antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
