@@ -55,14 +55,31 @@ export function Chat({
         contentType: response.headers.get('content-type'),
         status: response.status
       });
+      // Reset stream state on new responses
+      streamContent.current = '';
+      streamMessageId.current = 'streaming-' + Date.now();
     },
     onFinish: (message) => {
       console.log('✅ Chat finished, final message:', message);
-      // Ensure we keep the final message
-      setMessages(currentMessages => {
-        const withoutStreaming = currentMessages.filter(m => !m.id.startsWith('streaming-'));
-        return [...withoutStreaming, message];
-      });
+      
+      // Update both the chat messages and our local messages
+      const updateMessages = (currentMessages: Message[]) => {
+        // Keep all non-streaming messages
+        const existingMessages = currentMessages.filter(m => !m.id.startsWith('streaming-'));
+        
+        // Check if we already have this message to avoid duplicates
+        const messageExists = existingMessages.some(m => m.id === message.id);
+        
+        // If message doesn't exist, add it while preserving order
+        return messageExists ? existingMessages : [...existingMessages, message];
+      };
+
+      setMessages(updateMessages);
+      setLocalMessages(updateMessages);
+
+      // Reset stream state
+      streamContent.current = '';
+      streamMessageId.current = 'streaming-' + Date.now();
       mutate('/api/history');
     },
   });
@@ -70,16 +87,6 @@ export function Chat({
   // Maintain our own messages state to prevent resets
   const [messages, setLocalMessages] = useState(initialMessages);
   
-  // Keep these logs for debugging
-  useEffect(() => {
-    console.log('📨 Messages state update:', {
-      messageCount: messages.length,
-      messages,
-      isLoading,
-      lastMessageRole: messages[messages.length - 1]?.role
-    });
-  }, [messages, isLoading]);
-
   // Track accumulated content
   const streamContent = useRef('');
   const streamMessageId = useRef('streaming-' + Date.now());
@@ -87,10 +94,24 @@ export function Chat({
   // Update local messages when chat messages change
   useEffect(() => {
     if (chatMessages.length > 0) {
-      const lastMessage = chatMessages[chatMessages.length - 1];
-      if (lastMessage.role === 'user') {
-        setLocalMessages(chatMessages);
-      }
+      // Update all messages to maintain conversation history
+      setLocalMessages(currentMessages => {
+        // Create a map of existing messages by ID for quick lookup
+        const existingMessagesMap = new Map(currentMessages.map(m => [m.id, m]));
+        
+        // Add or update messages from chatMessages
+        chatMessages.forEach(message => {
+          existingMessagesMap.set(message.id, message);
+        });
+        
+        // Convert back to array and sort by creation time
+        return Array.from(existingMessagesMap.values())
+          .sort((a, b) => {
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return timeA - timeB;
+          });
+      });
     }
   }, [chatMessages]);
 
@@ -108,9 +129,12 @@ export function Chat({
         // Accumulate content
         streamContent.current += lastDelta.content;
         
-        // Update or create streaming message
+        // Update streaming message
         setLocalMessages(currentMessages => {
+          // Remove any existing streaming messages
           const withoutStreaming = currentMessages.filter(m => !m.id.startsWith('streaming-'));
+          
+          // Add the current streaming message at the end
           return [...withoutStreaming, {
             id: streamMessageId.current,
             role: 'assistant',
@@ -118,13 +142,19 @@ export function Chat({
             createdAt: new Date()
           }];
         });
-      } else if (lastDelta.type === 'finish') {
-        // Reset for next stream
-        streamContent.current = '';
-        streamMessageId.current = 'streaming-' + Date.now();
       }
     }
   }, [dataStream]);
+
+  // Keep these logs for debugging
+  useEffect(() => {
+    console.log('📨 Messages state update:', {
+      messageCount: messages.length,
+      messages,
+      isLoading,
+      lastMessageRole: messages[messages.length - 1]?.role
+    });
+  }, [messages, isLoading]);
 
   const { data: votes } = useSWR<Array<Vote>>(
     `/api/vote?chatId=${id}`,
