@@ -1,3 +1,5 @@
+// components/chat.tsx
+
 'use client';
 
 import type { Attachment, Message } from 'ai';
@@ -66,17 +68,6 @@ export function Chat({
     setCurrentModelId(modelId);
     reload();
   };
-
-  useEffect(() => {
-    if (!messages.length) return;
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage.role === 'assistant' && isLoading) {
-      const updatedMessages = messages.map((msg, i) => 
-        i === messages.length - 1 ? { ...msg, id: msg.id + Date.now() } : msg
-      );
-      setMessages(updatedMessages);
-    }
-  }, [messages, isLoading, setMessages]);
 
   return (
     <>

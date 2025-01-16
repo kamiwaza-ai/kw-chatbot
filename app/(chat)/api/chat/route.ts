@@ -125,29 +125,30 @@ export async function POST(request: Request) {
         messages: coreMessages,
         maxSteps: 5,
         experimental_activeTools: allTools,
+        onChunk: ({ chunk }) => {
+          if (chunk.type === 'text-delta') {
+            dataStream.writeData({
+              type: 'text-delta',
+              content: chunk.textDelta
+            });
+          }
+        },
+        onFinish: async ({ text }) => {
+          await saveMessages({
+            messages: [{
+              role: 'assistant',
+              content: text,
+              id: generateUUID(),
+              createdAt: new Date(),
+              chatId: id
+            }]
+          });
+        }
       });
 
-      let fullText = '';
-
-      // Stream each text chunk to the client
       for await (const chunk of result.textStream) {
-        fullText += chunk;  // Build up the complete text
-        dataStream.writeData({
-          type: 'text',
-          content: chunk
-        });
+        // The onChunk handler above will handle forwarding to client
       }
-
-      // Save the complete message
-      await saveMessages({
-        messages: [{
-          role: 'assistant',
-          content: fullText,
-          id: generateUUID(),
-          createdAt: new Date(),
-          chatId: id
-        }]
-      });
 
       dataStream.writeData({ type: 'finish', content: '' });
     }

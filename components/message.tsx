@@ -1,3 +1,5 @@
+// components/message.tsx
+
 'use client';
 
 import type { ChatRequestOptions, Message } from 'ai';

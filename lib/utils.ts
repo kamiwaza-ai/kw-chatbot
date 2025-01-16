@@ -1,3 +1,5 @@
+// lib/utils.ts
+
 import type {
   CoreAssistantMessage,
   CoreMessage,
