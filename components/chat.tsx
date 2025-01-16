@@ -4,7 +4,7 @@
 
 import type { Attachment, Message } from 'ai';
 import { useChat } from 'ai/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 
 import { ChatHeader } from '@/components/chat-header';
@@ -16,6 +16,7 @@ import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
 import { VisibilityType } from './visibility-selector';
 import { useBlockSelector } from '@/hooks/use-block';
+import { DataStreamHandler } from './data-stream-handler';
 
 export function Chat({
   id,
@@ -34,8 +35,9 @@ export function Chat({
   const [currentModelId, setCurrentModelId] = useState(selectedModelId);
 
   const {
-    messages,
+    messages: chatMessages,
     setMessages,
+    data: dataStream,
     handleSubmit,
     input,
     setInput,
@@ -47,14 +49,82 @@ export function Chat({
     id,
     body: { id, modelId: currentModelId },
     initialMessages,
+    experimental_throttle: 0,
+    onResponse: (response) => {
+      console.log('🔄 Chat response headers:', {
+        contentType: response.headers.get('content-type'),
+        status: response.status
+      });
+    },
     onFinish: (message) => {
-      console.log('Chat finished with message:', message);
+      console.log('✅ Chat finished, final message:', message);
+      // Ensure we keep the final message
+      setMessages(currentMessages => {
+        const withoutStreaming = currentMessages.filter(m => !m.id.startsWith('streaming-'));
+        return [...withoutStreaming, message];
+      });
       mutate('/api/history');
     },
-    onError: (error) => {
-      console.error('Chat error:', error);
-    },
   });
+
+  // Maintain our own messages state to prevent resets
+  const [messages, setLocalMessages] = useState(initialMessages);
+  
+  // Keep these logs for debugging
+  useEffect(() => {
+    console.log('📨 Messages state update:', {
+      messageCount: messages.length,
+      messages,
+      isLoading,
+      lastMessageRole: messages[messages.length - 1]?.role
+    });
+  }, [messages, isLoading]);
+
+  // Track accumulated content
+  const streamContent = useRef('');
+  const streamMessageId = useRef('streaming-' + Date.now());
+
+  // Update local messages when chat messages change
+  useEffect(() => {
+    if (chatMessages.length > 0) {
+      const lastMessage = chatMessages[chatMessages.length - 1];
+      if (lastMessage.role === 'user') {
+        setLocalMessages(chatMessages);
+      }
+    }
+  }, [chatMessages]);
+
+  useEffect(() => {
+    if (dataStream && dataStream.length > 0) {
+      console.log('🌊 DataStream update:', {
+        streamLength: dataStream.length,
+        lastDelta: dataStream[dataStream.length - 1]
+      });
+      
+      const lastDelta = dataStream[dataStream.length - 1] as { type: string; content: string };
+      if (lastDelta.type === 'text-delta') {
+        console.log('📝 Processing text delta:', lastDelta.content);
+        
+        // Accumulate content
+        streamContent.current += lastDelta.content;
+        
+        // Update or create streaming message
+        setLocalMessages(currentMessages => {
+          const withoutStreaming = currentMessages.filter(m => !m.id.startsWith('streaming-'));
+          return [...withoutStreaming, {
+            id: streamMessageId.current,
+            role: 'assistant',
+            content: streamContent.current,
+            createdAt: new Date()
+          }];
+        });
+      } else if (lastDelta.type === 'finish') {
+        // Reset for next stream
+        streamContent.current = '';
+        streamMessageId.current = 'streaming-' + Date.now();
+      }
+    }
+  }, [dataStream]);
 
   const { data: votes } = useSWR<Array<Vote>>(
     `/api/vote?chatId=${id}`,
@@ -85,14 +155,14 @@ export function Chat({
           isLoading={isLoading}
           votes={votes}
           messages={messages}
-          setMessages={setMessages}
+          setMessages={setLocalMessages}
           reload={reload}
           isReadonly={isReadonly}
           isBlockVisible={isBlockVisible}
         />
 
-        <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
-          {!isReadonly && (
+        {!isReadonly && (
+          <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
             <MultimodalInput
               chatId={id}
               input={input}
@@ -103,11 +173,11 @@ export function Chat({
               attachments={attachments}
               setAttachments={setAttachments}
               messages={messages}
-              setMessages={setMessages}
+              setMessages={setLocalMessages}
               append={append}
             />
-          )}
-        </form>
+          </form>
+        )}
       </div>
 
       <Block
@@ -121,11 +191,13 @@ export function Chat({
         setAttachments={setAttachments}
         append={append}
         messages={messages}
-        setMessages={setMessages}
+        setMessages={setLocalMessages}
         reload={reload}
         votes={votes}
         isReadonly={isReadonly}
       />
+
+      <DataStreamHandler dataStream={dataStream} />
     </>
   );
 }

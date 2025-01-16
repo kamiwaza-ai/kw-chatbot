@@ -8,7 +8,6 @@ import { Chat } from '@/components/chat';
 import { getValidModelId, initializeModels, models } from '@/lib/ai/models';
 import { getChatById, getMessagesByChatId } from '@/lib/db/queries';
 import { convertToUIMessages } from '@/lib/utils';
-import { DataStreamHandler } from '@/components/data-stream-handler';
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -44,15 +43,12 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   const selectedModelId = getValidModelId(cookieStore.get('model-id')?.value);
 
   return (
-    <>
-      <Chat
-        id={chat.id}
-        initialMessages={convertToUIMessages(messagesFromDb)}
-        selectedModelId={selectedModelId}
-        selectedVisibilityType={chat.visibility}
-        isReadonly={session?.user?.dbId !== chat.userId}
-      />
-      <DataStreamHandler id={id} />
-    </>
+    <Chat
+      id={chat.id}
+      initialMessages={convertToUIMessages(messagesFromDb)}
+      selectedModelId={selectedModelId}
+      selectedVisibilityType={chat.visibility}
+      isReadonly={session?.user?.dbId !== chat.userId}
+    />
   );
 }
