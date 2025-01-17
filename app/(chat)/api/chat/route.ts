@@ -113,7 +113,7 @@ export async function POST(request: Request) {
   });
 
   return createDataStreamResponse({
-    execute: async (dataStream) => {
+    execute: (dataStream) => {
       dataStream.writeData({
         type: 'user-message-id',
         content: userMessageId,
@@ -125,19 +125,11 @@ export async function POST(request: Request) {
         messages: coreMessages,
         maxSteps: 5,
         experimental_activeTools: allTools,
-        onChunk: ({ chunk }) => {
-          if (chunk.type === 'text-delta') {
-            dataStream.writeData({
-              type: 'text-delta',
-              content: chunk.textDelta
-            });
-          }
-        },
-        onFinish: async ({ text }) => {
+        onFinish: async ({ response }) => {
           await saveMessages({
             messages: [{
               role: 'assistant',
-              content: text,
+              content: response.messages[response.messages.length - 1].content,
               id: generateUUID(),
               createdAt: new Date(),
               chatId: id
@@ -146,11 +138,7 @@ export async function POST(request: Request) {
         }
       });
 
-      for await (const chunk of result.textStream) {
-        // The onChunk handler above will handle forwarding to client
-      }
-
-      dataStream.writeData({ type: 'finish', content: '' });
+      result.mergeIntoDataStream(dataStream);
     }
   });
 }
