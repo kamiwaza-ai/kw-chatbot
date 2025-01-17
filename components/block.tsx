@@ -77,7 +77,6 @@ function PureBlock({
   messages,
   setMessages,
   reload,
-  votes,
   isReadonly,
 }: {
   chatId: string;
@@ -89,7 +88,6 @@ function PureBlock({
   setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
   messages: Array<Message>;
   setMessages: Dispatch<SetStateAction<Array<Message>>>;
-  votes: Array<Vote> | undefined;
   append: (
     message: Message | CreateMessage,
     chatRequestOptions?: ChatRequestOptions,
@@ -329,7 +327,6 @@ function PureBlock({
                 <BlockMessages
                   chatId={chatId}
                   isLoading={isLoading}
-                  votes={votes}
                   messages={messages}
                   setMessages={setMessages}
                   reload={reload}
@@ -573,9 +570,11 @@ function PureBlock({
 
 export const Block = memo(PureBlock, (prevProps, nextProps) => {
   if (prevProps.isLoading !== nextProps.isLoading) return false;
-  if (!equal(prevProps.votes, nextProps.votes)) return false;
   if (prevProps.input !== nextProps.input) return false;
-  if (!equal(prevProps.messages, nextProps.messages.length)) return false;
+  if (prevProps.messages.length !== nextProps.messages.length) return false;
+  if (prevProps.attachments.length !== nextProps.attachments.length) return false;
+  if (!equal(prevProps.messages, nextProps.messages)) return false;
+  if (!equal(prevProps.attachments, nextProps.attachments)) return false;
 
   return true;
 });

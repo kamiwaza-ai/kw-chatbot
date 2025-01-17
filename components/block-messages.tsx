@@ -1,6 +1,5 @@
 import { PreviewMessage } from './message';
 import { useScrollToBottom } from './use-scroll-to-bottom';
-import { Vote } from '@/lib/db/schema';
 import { ChatRequestOptions, Message } from 'ai';
 import { memo } from 'react';
 import equal from 'fast-deep-equal';
@@ -9,7 +8,6 @@ import { UIBlock } from './block';
 interface BlockMessagesProps {
   chatId: string;
   isLoading: boolean;
-  votes: Array<Vote> | undefined;
   messages: Array<Message>;
   setMessages: (
     messages: Message[] | ((messages: Message[]) => Message[]),
@@ -24,7 +22,6 @@ interface BlockMessagesProps {
 function PureBlockMessages({
   chatId,
   isLoading,
-  votes,
   messages,
   setMessages,
   reload,
@@ -44,11 +41,6 @@ function PureBlockMessages({
           key={message.id}
           message={message}
           isLoading={isLoading && index === messages.length - 1}
-          vote={
-            votes
-              ? votes.find((vote) => vote.messageId === message.id)
-              : undefined
-          }
           setMessages={setMessages}
           reload={reload}
           isReadonly={isReadonly}
@@ -76,7 +68,6 @@ function areEqual(
   if (prevProps.isLoading !== nextProps.isLoading) return false;
   if (prevProps.isLoading && nextProps.isLoading) return false;
   if (prevProps.messages.length !== nextProps.messages.length) return false;
-  if (!equal(prevProps.votes, nextProps.votes)) return false;
 
   return true;
 }
