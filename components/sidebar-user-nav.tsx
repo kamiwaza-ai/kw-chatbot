@@ -40,8 +40,11 @@ export function SidebarUserNav({ user }: { user: KamiwazaUser }) {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={async () => {
-            await fetch('/api/auth/logout', { method: 'POST' });
-            router.refresh();
+            const response = await fetch('/api/auth/logout', { method: 'POST' });
+            if (response.ok) {
+              router.push('/login');
+              router.refresh();
+            }
           }}
         >
           <LogOut className="mr-2 h-4 w-4" />

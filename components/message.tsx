@@ -6,8 +6,7 @@ import type { ChatRequestOptions, Message } from 'ai';
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import { memo, useMemo, useState } from 'react';
-
-import type { Vote } from '@/lib/db/schema';
+import Image from 'next/image';
 
 import { DocumentToolCall, DocumentToolResult } from './document';
 import { PencilEditIcon, SparklesIcon } from './icons';
@@ -25,7 +24,6 @@ import { DocumentPreview } from './document-preview';
 const PurePreviewMessage = ({
   chatId,
   message,
-  vote,
   isLoading,
   setMessages,
   reload,
@@ -33,7 +31,6 @@ const PurePreviewMessage = ({
 }: {
   chatId: string;
   message: Message;
-  vote: Vote | undefined;
   isLoading: boolean;
   setMessages: (
     messages: Message[] | ((messages: Message[]) => Message[]),
@@ -63,10 +60,14 @@ const PurePreviewMessage = ({
           )}
         >
           {message.role === 'assistant' && (
-            <div className="size-8 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border bg-background">
-              <div className="translate-y-px">
-                <SparklesIcon size={14} />
-              </div>
+            <div className="size-8 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border bg-background overflow-hidden">
+              <Image
+                src="/images/assistant-logo.png"
+                alt="Assistant logo"
+                width={24}
+                height={24}
+                className="object-contain"
+              />
             </div>
           )}
 
@@ -194,9 +195,7 @@ const PurePreviewMessage = ({
             {!isReadonly && (
               <MessageActions
                 key={`action-${message.id}`}
-                chatId={chatId}
                 message={message}
-                vote={vote}
                 isLoading={isLoading}
               />
             )}
@@ -219,7 +218,6 @@ export const PreviewMessage = memo(
       )
     )
       return false;
-    if (!equal(prevProps.vote, nextProps.vote)) return false;
 
     return true;
   },
@@ -248,8 +246,10 @@ export const ThinkingMessage = () => {
         </div>
 
         <div className="flex flex-col gap-2 w-full">
-          <div className="flex flex-col gap-4 text-muted-foreground">
-            Thinking...
+          <div className="flex flex-row gap-2">
+            <div className="size-2 rounded-full bg-muted-foreground animate-pulse" />
+            <div className="size-2 rounded-full bg-muted-foreground animate-pulse delay-150" />
+            <div className="size-2 rounded-full bg-muted-foreground animate-pulse delay-300" />
           </div>
         </div>
       </div>

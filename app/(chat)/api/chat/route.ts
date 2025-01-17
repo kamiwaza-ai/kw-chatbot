@@ -144,7 +144,12 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const { id }: { id: string } = await request.json();
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
+
+  if (!id) {
+    return new Response('Missing id', { status: 400 });
+  }
 
   const session = await getSession();
 
