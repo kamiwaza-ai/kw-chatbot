@@ -26,16 +26,45 @@ Your chatbot will be running at [localhost:3000](http://localhost:3000/). Log in
 
 ## Running without Docker
 
-1. Copy the environment variables:
+### Prerequisites
+- Node.js 20 or later
+- PostgreSQL 15 or later
+- pnpm (install with `npm install -g pnpm`)
+
+### Setup Steps
+
+1. Install and configure PostgreSQL:
+   - Create a database named `chatbot`
+   - Create a user `myuser` with password `mypassword`
+   - Grant all privileges on the `chatbot` database to `myuser`
+
+   ```sql
+   CREATE DATABASE chatbot;
+   CREATE USER myuser WITH PASSWORD 'mypassword';
+   GRANT ALL PRIVILEGES ON DATABASE chatbot TO myuser;
+   ```
+
+2. Copy the environment variables:
 ```bash
 cp .env.example .env
 ```
 
-2. Update the environment variables in `.env` with your credentials
+3. Update the environment variables in `.env` with your credentials:
+   - Set your Kamiwaza credentials
+   - Verify the `POSTGRES_URL` matches your database setup
 
-3. Install dependencies and start the server:
+4. Install dependencies:
 ```bash
 pnpm install
+```
+
+5. Run database migrations:
+```bash
+pnpm db:migrate
+```
+
+6. Start the development server:
+```bash
 pnpm dev
 ```
 
