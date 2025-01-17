@@ -36,7 +36,7 @@ export function AuthForm({
           name="username"
           className="bg-muted text-md md:text-sm"
           type="text"
-          placeholder="johndoe"
+          placeholder="username"
           autoComplete="username"
           required
           autoFocus
@@ -47,6 +47,7 @@ export function AuthForm({
       <div className="flex flex-col gap-2">
         <Label
           htmlFor="password"
+        
           className="text-zinc-600 font-normal dark:text-zinc-400"
         >
           Password
@@ -55,6 +56,7 @@ export function AuthForm({
         <Input
           id="password"
           name="password"
+          placeholder="password"
           className="bg-muted text-md md:text-sm"
           type="password"
           required
