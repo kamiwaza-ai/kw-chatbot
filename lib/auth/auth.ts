@@ -1,3 +1,5 @@
+//lib/auth/auth.ts
+
 import { removeAuthCookie } from './cookies';
 import type { KamiwazaUser } from './types';
 

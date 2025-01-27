@@ -14,6 +14,7 @@
 
 // export const imageGenerationModel = openai.image('dall-e-3');
 
+//lib/ai/index.ts
 import { experimental_wrapLanguageModel as wrapLanguageModel } from 'ai';
 import { models, createKamiwazaProvider, initializeModels } from './models';
 import { customMiddleware } from './custom-middleware';

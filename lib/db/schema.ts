@@ -117,3 +117,19 @@ export const suggestion = pgTable(
 );
 
 export type Suggestion = InferSelectModel<typeof suggestion>;
+
+export const customModelEndpoint = pgTable('CustomModelEndpoint', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  name: text('name').notNull(),
+  uri: text('uri').notNull(),
+  apiKey: text('apiKey'),
+  providerType: varchar('providerType', { length: 32 }).notNull(),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  isActive: boolean('isActive').notNull().default(true),
+});
+
+export type CustomModelEndpoint = InferSelectModel<typeof customModelEndpoint>;

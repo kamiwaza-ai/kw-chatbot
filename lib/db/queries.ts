@@ -15,6 +15,8 @@ import {
   type Message,
   message,
   vote,
+  customModelEndpoint,
+  type CustomModelEndpoint,
 } from './schema';
 import { BlockKind } from '@/components/block';
 
@@ -352,4 +354,92 @@ export async function updateChatVisiblityById({
     console.error('Failed to update chat visibility in database');
     throw error;
   }
+}
+
+// Custom Model Endpoint Queries
+export async function createCustomModelEndpoint({
+  name,
+  uri,
+  apiKey,
+  providerType,
+  userId,
+}: {
+  name: string;
+  uri: string;
+  apiKey?: string;
+  providerType: string;
+  userId: string;
+}): Promise<CustomModelEndpoint> {
+  const [endpoint] = await db
+    .insert(customModelEndpoint)
+    .values({
+      name,
+      uri,
+      apiKey,
+      providerType,
+      userId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .returning();
+  return endpoint;
+}
+
+export async function listCustomModelEndpoints(userId: string): Promise<CustomModelEndpoint[]> {
+  return db
+    .select()
+    .from(customModelEndpoint)
+    .where(and(
+      eq(customModelEndpoint.userId, userId),
+      eq(customModelEndpoint.isActive, true)
+    ));
+}
+
+export async function getCustomModelEndpointById(id: string): Promise<CustomModelEndpoint | undefined> {
+  const [endpoint] = await db
+    .select()
+    .from(customModelEndpoint)
+    .where(eq(customModelEndpoint.id, id));
+  return endpoint;
+}
+
+export async function updateCustomModelEndpoint({
+  id,
+  name,
+  uri,
+  apiKey,
+  providerType,
+  isActive,
+}: {
+  id: string;
+  name?: string;
+  uri?: string;
+  apiKey?: string;
+  providerType?: string;
+  isActive?: boolean;
+}): Promise<CustomModelEndpoint | undefined> {
+  const updates: Partial<CustomModelEndpoint> = {
+    updatedAt: new Date(),
+  };
+  
+  if (name !== undefined) updates.name = name;
+  if (uri !== undefined) updates.uri = uri;
+  if (apiKey !== undefined) updates.apiKey = apiKey;
+  if (providerType !== undefined) updates.providerType = providerType;
+  if (isActive !== undefined) updates.isActive = isActive;
+
+  const [updated] = await db
+    .update(customModelEndpoint)
+    .set(updates)
+    .where(eq(customModelEndpoint.id, id))
+    .returning();
+  
+  return updated;
+}
+
+export async function deleteCustomModelEndpoint(id: string): Promise<void> {
+  await db
+    .update(customModelEndpoint)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(eq(customModelEndpoint.id, id));
 }

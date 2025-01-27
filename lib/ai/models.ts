@@ -23,6 +23,7 @@
 // ] as const;
 
 // export const DEFAULT_MODEL_NAME: string = 'gpt-4o-mini';
+//lib/ai/models.ts
 
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { KamiwazaClient, UIModelDeployment, KamiwazaModel } from '@/lib/ai/kamiwaza-client';
