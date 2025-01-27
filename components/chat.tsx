@@ -4,7 +4,7 @@
 
 import type { Attachment, Message } from 'ai';
 import { useChat } from 'ai/react';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 
 import { ChatHeader } from '@/components/chat-header';
@@ -31,6 +31,9 @@ export function Chat({
   isReadonly: boolean;
 }) {
   const { mutate } = useSWRConfig();
+  const [currentModelId, setCurrentModelId] = useState(selectedModelId);
+
+  console.log('Chat component state:', { currentModelId, selectedModelId });
 
   const {
     messages,
@@ -44,12 +47,16 @@ export function Chat({
     reload,
   } = useChat({
     id,
-    body: { id, modelId: selectedModelId },
+    body: { id, modelId: currentModelId },
     initialMessages,
     experimental_throttle: 100,
     onFinish: () => {
+      console.log('Chat finished, model used:', currentModelId);
       mutate('/api/history');
     },
+    onError: (error) => {
+      console.error('Chat error:', { error, modelId: currentModelId });
+    }
   });
 
   const { data: votes } = useSWR<Array<Vote>>(
@@ -60,14 +67,26 @@ export function Chat({
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const isBlockVisible = useBlockSelector((state) => state.isVisible);
 
+  const handleModelChange = useCallback((modelId: string) => {
+    console.log('Model change requested:', { from: currentModelId, to: modelId });
+    setCurrentModelId(modelId);
+    reload();
+  }, [currentModelId, reload]);
+
+  const wrappedHandleSubmit = useCallback((event?: { preventDefault?: () => void }, chatRequestOptions?: any) => {
+    console.log('Submitting chat with model:', { modelId: currentModelId, options: chatRequestOptions });
+    return handleSubmit(event, chatRequestOptions);
+  }, [handleSubmit, currentModelId]);
+
   return (
     <>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
         <ChatHeader
           chatId={id}
-          selectedModelId={selectedModelId}
+          selectedModelId={currentModelId}
           selectedVisibilityType={selectedVisibilityType}
           isReadonly={isReadonly}
+          onModelChange={handleModelChange}
         />
 
         <Messages
@@ -87,7 +106,7 @@ export function Chat({
               chatId={id}
               input={input}
               setInput={setInput}
-              handleSubmit={handleSubmit}
+              handleSubmit={wrappedHandleSubmit}
               isLoading={isLoading}
               stop={stop}
               attachments={attachments}
@@ -104,7 +123,7 @@ export function Chat({
         chatId={id}
         input={input}
         setInput={setInput}
-        handleSubmit={handleSubmit}
+        handleSubmit={wrappedHandleSubmit}
         isLoading={isLoading}
         stop={stop}
         attachments={attachments}
@@ -113,7 +132,6 @@ export function Chat({
         messages={messages}
         setMessages={setMessages}
         reload={reload}
-        votes={votes}
         isReadonly={isReadonly}
       />
     </>

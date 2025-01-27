@@ -11,7 +11,7 @@ import {
 import { z } from 'zod';
 
 import { getSession } from '@/lib/auth/session';
-import { models, initializeModels, createKamiwazaProvider } from '@/lib/ai/models';
+import { models, initializeModels, createKamiwazaProvider, createOpenAICompatible } from '@/lib/ai/models';
 import { customMiddleware } from '@/lib/ai/custom-middleware';
 import {
   codePrompt,
@@ -30,6 +30,7 @@ import {
   generateUUID,
   getMostRecentUserMessage,
 } from '@/lib/utils';
+import { getAuthCookie } from '@/lib/auth/cookies';
 
 import { generateTitleFromUserMessage } from '../../actions';
 
@@ -51,9 +52,36 @@ const allTools: AllowedTools[] = [...blocksTools, ...weatherTools];
 
 export async function POST(request: Request) {
   console.log('Chat API called');
-  // Ensure models are initialized
-  if (models.length === 0) {
-    await initializeModels();
+  
+  const session = await getSession();
+  console.log('Session state:', {
+    exists: !!session,
+    hasUser: !!session?.user,
+    userId: session?.user?.dbId
+  });
+
+  if (!session || !session.user) {
+    console.log('Unauthorized: No valid session');
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  // Get auth token
+  const token = await getAuthCookie();
+  if (!token) {
+    console.log('No auth token found');
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  // Ensure models are initialized with user session and token
+  console.log('Initializing models with user:', session.user.dbId);
+  try {
+    if (models.length === 0) {
+      await initializeModels(session.user.dbId, token);
+    }
+    console.log('Available models after initialization:', models);
+  } catch (error) {
+    console.error('Error initializing models:', error);
+    return new Response('Failed to initialize models', { status: 500 });
   }
 
   const {
@@ -65,29 +93,55 @@ export async function POST(request: Request) {
   
   console.log('Request payload:', { id, messages, modelId });
 
-  const session = await getSession();
-
-  if (!session || !session.user) {
-    return new Response('Unauthorized', { status: 401 });
-  }
-
   const model = models.find((model) => model.id === modelId);
   console.log('Found model:', model);
 
   if (!model) {
+    console.log('Model not found in available models:', {
+      requestedId: modelId,
+      availableIds: models.map(m => m.id)
+    });
     return new Response('Model not found', { status: 404 });
   }
 
-  // Create Kamiwaza provider if deployment info exists
+  // Create provider based on model type
   let wrappedModel;
-  if (model.deployment) {
-    const provider = createKamiwazaProvider(model.deployment.lb_port);
-    wrappedModel = wrapLanguageModel({
-      model: provider('model'),
-      middleware: customMiddleware,
-    });
-  } else {
-    return new Response('Model deployment not found', { status: 404 });
+  try {
+    if (model.type === 'kamiwaza' && model.deployment) {
+      console.log('Creating Kamiwaza provider:', {
+        port: model.deployment.lb_port,
+        baseUrl: process.env.NEXT_PUBLIC_KAMIWAZA_URI
+      });
+      const provider = createKamiwazaProvider(model.deployment.lb_port);
+      wrappedModel = wrapLanguageModel({
+        model: provider('model'),
+        middleware: customMiddleware,
+      });
+    } else if (model.type === 'custom' && model.uri) {
+      console.log('Creating custom provider:', {
+        uri: model.uri,
+        hasApiKey: !!model.apiKey
+      });
+      const provider = createOpenAICompatible({
+        name: 'model',
+        baseURL: model.uri,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(model.apiKey && { 'Authorization': `Bearer ${model.apiKey}` })
+        }
+      });
+      wrappedModel = wrapLanguageModel({
+        model: provider('model'),
+        middleware: customMiddleware,
+      });
+      console.log('Custom provider created successfully');
+    } else {
+      console.log('Invalid model configuration:', model);
+      return new Response('Invalid model configuration', { status: 400 });
+    }
+  } catch (error) {
+    console.error('Error creating provider:', error);
+    return new Response('Failed to create provider', { status: 500 });
   }
 
   const coreMessages = convertToCoreMessages(messages);

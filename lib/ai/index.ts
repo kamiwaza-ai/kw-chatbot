@@ -16,7 +16,7 @@
 
 //lib/ai/index.ts
 import { experimental_wrapLanguageModel as wrapLanguageModel } from 'ai';
-import { models, createKamiwazaProvider, initializeModels } from './models';
+import { models, createKamiwazaProvider, createOpenAICompatible, initializeModels } from './models';
 import { customMiddleware } from './custom-middleware';
 
 export const customModel = async (apiIdentifier: string) => {
@@ -27,9 +27,24 @@ export const customModel = async (apiIdentifier: string) => {
 
   const model = models.find(m => m.apiIdentifier === apiIdentifier);
   if (!model) throw new Error(`Model ${apiIdentifier} not found`);
-  if (!model.deployment) throw new Error(`Model ${apiIdentifier} not deployed`);
 
-  const provider = createKamiwazaProvider(model.deployment.lb_port);
+  let provider;
+  if (model.type === 'kamiwaza') {
+    if (!model.deployment) throw new Error(`Kamiwaza model ${apiIdentifier} not deployed`);
+    provider = createKamiwazaProvider(model.deployment.lb_port);
+  } else if (model.type === 'custom') {
+    if (!model.uri) throw new Error(`Custom model ${apiIdentifier} has no URI`);
+    provider = createOpenAICompatible({
+      name: 'model',
+      baseURL: model.uri,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(model.apiKey && { 'Authorization': `Bearer ${model.apiKey}` })
+      }
+    });
+  } else {
+    throw new Error(`Unknown model type: ${model.type}`);
+  }
   
   return wrapLanguageModel({
     model: provider('model'),  // Always use 'model' here
